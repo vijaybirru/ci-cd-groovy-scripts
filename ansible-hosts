@@ -1,0 +1,19 @@
+stage("Patch the ec2 in a farm") {
+        //create node file for ansible
+        ipAddresses=params.ipAddress.replace(","," ")
+        sh """  
+        rm -rf nodes    
+        echo "[NODE]" > nodes
+        for m in ${ipAddresses}; do
+           echo "\$m ansible_user=gecloud" >> nodes
+        done
+        cat nodes         
+        """
+        
+        sshagent(["${credentials}"]) {
+            status = sh returnStatus:true, script: """                
+                export ANSIBLE_HOST_KEY_CHECKING=False
+                ansible-playbook ${WORKSPACE}@script/ec2_patch_n_restart_ansible.yml --forks=1 -b -i  ./nodes -v                    
+            """
+            
+        }
